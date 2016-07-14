@@ -1,0 +1,161 @@
+#include <stdio.h>
+#include <unistd.h>
+#include <pthread.h>
+
+#ifndef THREADCOUNT
+#define THREADCOUNT 10
+#endif
+
+#ifndef CROSSINGTIME
+#define CROSSINGTIME 4
+#endif
+
+#ifndef CARSPACING
+#define CARSPACING 1
+#endif
+
+typedef enum thread_class {
+  CAR = 0,
+  TRUCK = 1
+} class_t;
+
+typedef enum thread_direction {
+  NONE = 0,
+  LEFT = 1,
+  RIGHT = 2
+} direction_t;
+
+typedef struct thread_vehicle {
+
+  int id;
+  pthread_t pt;
+  class_t class;
+  direction_t direction;
+
+} vehicle_t;
+
+char *class_t_name(class_t type) {
+  return type == CAR ? "CAR  " : "TRUCK";
+}
+
+char *direction_t_name(direction_t type) {
+  return type == LEFT ? "LEFT " : "RIGHT";
+}
+
+//pthread_mutex_t flow = PTHREAD_MUTEX_INITIALIZER;
+//pthread_cond_t flow = PTHREAD_COND_INITIALIZER;
+direction_t flow = NONE;
+pthread_mutex_t flow_lock = PTHREAD_MUTEX_INITIALIZER;
+int flow_r_ct = 0;
+pthread_mutex_t flow_r_ct_lock = PTHREAD_MUTEX_INITIALIZER;
+int on_ct = 0;
+pthread_mutex_t on_ct_lock = PTHREAD_MUTEX_INITIALIZER;
+
+// TODO: On bridge count
+
+void *init_vehicle(void *arg) {
+
+  vehicle_t v = *(vehicle_t *)arg;
+  printf("Vehicle created: #%d - %s, heading: %s\n", v.id, class_t_name(v.class),
+    direction_t_name(v.direction));
+
+  while (1 == 1) {
+
+    pthread_mutex_lock(&flow_r_ct_lock);
+    flow_r_ct++;
+
+    // TODO: Check for truck or over tiem count.
+
+    if (flow_r_ct == 0)
+      pthread_mutex_lock(&flow_lock);
+    pthread_mutex_unlock(&flow_r_ct_lock);
+
+    pthread_mutex_lock(&on_ct_lock);
+
+    if (flow == v.direction || (on_ct == 0 && v.class == TRUCK)) {
+
+      on_ct++;
+      sleep(CARSPACING);
+      pthread_mutex_unlock(&on_ct_lock);
+
+
+      printf("Vehicle crossing: #%d - %s, heading: %s\n", v.id, class_t_name(v.class),
+        direction_t_name(v.direction));
+      sleep(CROSSINGTIME);
+      printf("Vehicle crossed: #%d - %s, heading: %s\n", v.id, class_t_name(v.class),
+        direction_t_name(v.direction));
+        pthread_mutex_lock(&on_ct_lock);
+        on_ct--;
+        pthread_mutex_unlock(&on_ct_lock);
+
+        pthread_mutex_lock(&flow_r_ct_lock);
+
+        flow_r_ct--;
+        if (flow_r_ct == 0)
+          pthread_mutex_unlock(&flow_lock);
+
+        pthread_mutex_unlock(&flow_r_ct_lock);
+
+      pthread_exit(0);
+
+    }
+
+    pthread_mutex_unlock(&on_ct_lock);
+
+    pthread_mutex_lock(&flow_r_ct_lock);
+
+    flow_r_ct--;
+    if (flow_r_ct == 0)
+      pthread_mutex_unlock(&flow_lock);
+
+    pthread_mutex_unlock(&flow_r_ct_lock);
+
+  }
+
+  return(0);
+
+}
+
+int main(int argc, char **argv) {
+
+  srand(time(NULL));
+
+  // create many threads
+  pthread_t pts[THREADCOUNT] = {0};
+  for (int i = 0; i < THREADCOUNT; i++) {
+
+    vehicle_t *v = malloc(sizeof(vehicle_t));
+
+    class_t ctype = (rand() % 10 == 9) ? TRUCK : CAR;
+    direction_t dtype = ((rand() % 2) + 1) == LEFT ? LEFT : RIGHT;
+
+    (*v).class = ctype;
+    (*v).direction = dtype;
+    (*v).id = i;
+
+    // TODO: Create linked list..
+
+    pthread_create(&(*v).pt, NULL, init_vehicle, v);
+
+  }
+
+
+
+  for (int i = 0; i < THREADCOUNT; i++) {
+    if (pts[i] == NULL) continue;
+    pthread_join(pts[i], NULL);
+  }
+
+  // check the left side
+  // check for a truck
+    // move truck, or;
+  // move a few cars through one at a time until
+    // either
+      // time elapses
+      // truck is encountered
+  // wait for last vehicle to cross
+  // change sides
+
+  return(0);
+
+}
