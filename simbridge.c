@@ -4,11 +4,15 @@
 #include <pthread.h>
 
 #ifndef THREADCOUNT
-#define THREADCOUNT 2
+#define THREADCOUNT 10
 #endif
 
 #ifndef CROSSINGTIME
 #define CROSSINGTIME 4
+#endif
+
+#ifndef DELAYTIME
+#define DELAYTIME 1
 #endif
 
 #ifndef TRUCKPERCENTAGE
@@ -18,75 +22,6 @@
 #ifndef LEFTPERCENTAGE
 #define LEFTPERCENTAGE 0.5
 #endif
-
-#ifdef __APPLE__
-
-#ifndef PTHREAD_BARRIER_H_
-#define PTHREAD_BARRIER_H_
-
-#include <pthread.h>
-#include <errno.h>
-
-typedef int pthread_barrierattr_t;
-typedef struct
-{
-    pthread_mutex_t mutex;
-    pthread_cond_t cond;
-    int count;
-    int tripCount;
-} pthread_barrier_t;
-
-
-int pthread_barrier_init(pthread_barrier_t *barrier, const pthread_barrierattr_t *attr, unsigned int count)
-{
-    if(count == 0)
-    {
-        errno = EINVAL;
-        return -1;
-    }
-    if(pthread_mutex_init(&barrier->mutex, 0) < 0)
-    {
-        return -1;
-    }
-    if(pthread_cond_init(&barrier->cond, 0) < 0)
-    {
-        pthread_mutex_destroy(&barrier->mutex);
-        return -1;
-    }
-    barrier->tripCount = count;
-    barrier->count = 0;
-
-    return 0;
-}
-
-int pthread_barrier_destroy(pthread_barrier_t *barrier)
-{
-    pthread_cond_destroy(&barrier->cond);
-    pthread_mutex_destroy(&barrier->mutex);
-    return 0;
-}
-
-int pthread_barrier_wait(pthread_barrier_t *barrier)
-{
-    pthread_mutex_lock(&barrier->mutex);
-    ++(barrier->count);
-    if(barrier->count >= barrier->tripCount)
-    {
-        barrier->count = 0;
-        pthread_cond_broadcast(&barrier->cond);
-        pthread_mutex_unlock(&barrier->mutex);
-        return 1;
-    }
-    else
-    {
-        pthread_cond_wait(&barrier->cond, &(barrier->mutex));
-        pthread_mutex_unlock(&barrier->mutex);
-        return 0;
-    }
-}
-
-#endif // PTHREAD_BARRIER_H_
-#endif // __APPLE__
 
 typedef enum vehicle_class {
   CAR = 0,
@@ -106,23 +41,34 @@ typedef struct vehicle_type {
 } vehicle_t;
 
 int nid = 0;
-
-pthread_barrier_t b;
+vehicle_t lv;
 pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t w = PTHREAD_COND_INITIALIZER;
+
+int can_i_go(vehicle_t *c, vehicle_t *m) {
+  if (c == NULL) return 1;
+  if (c->c == TRUCK || m->c == TRUCK) return 0;
+  if (c->d == c->d) return 1;
+  return 0;
+}
 
 void *vehicle_init(void *arg) {
 
   vehicle_t vtype = *(vehicle_t *)arg;
-  printf("Vehicle #%d created\n", vtype.id);
+  printf("Vehicle #%d (%u:%u) created\n", vtype.id, vtype.c, vtype.d);
 
   while (1 == 1) {
     pthread_mutex_lock(&m);
     printf("Vehicle #%d waiting\n", vtype.id);
     if (nid == vtype.id) {
-      sleep(1);
+      if (can_i_go(&lv, &vtype) == 1) {
+        sleep(DELAYTIME);
+      } else {
+        sleep(CROSSINGTIME);
+      }
+      printf("Vehicle #%d (%u:%u) crossing\n", vtype.id, vtype.c, vtype.d);
       nid++;
-      // TODO: Check last car type, etc. do logic
+      lv = vtype;
       pthread_cond_signal(&w);
       pthread_mutex_unlock(&m);
       break;
@@ -145,8 +91,8 @@ void *vehicle_init(void *arg) {
   return(0);
 }
 
-float rand_f() {
-  return rand()/RAND_MAX;
+double rand_f() {
+  return (double)rand() / (double)RAND_MAX;
 }
 
 class_t rand_c() {
