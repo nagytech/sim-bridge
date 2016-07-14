@@ -119,15 +119,24 @@ void *vehicle_init(void *arg) {
   while (1 == 1) {
     pthread_mutex_lock(&m);
     printf("Vehicle #%d waiting\n", vtype.id);
-    pthread_cond_wait(&w, &m);
     if (nid == vtype.id) {
-      printf("Vehicle #%d signalled\n", vtype.id);
+      sleep(1);
+      nid++;
+      // TODO: Check last car type, etc. do logic
+      pthread_cond_signal(&w);
       pthread_mutex_unlock(&m);
       break;
     } else {
-      printf("Vehicle #%d skipped\n", vtype.id);
+      pthread_cond_wait(&w, &m);
+      if (nid == vtype.id) {
+        printf("Vehicle #%d signalled\n", vtype.id);
+        pthread_mutex_unlock(&m);
+        break;
+      } else {
+        printf("Vehicle #%d skipped\n", vtype.id);
+      }
+      pthread_mutex_unlock(&m);
     }
-    pthread_mutex_unlock(&m);
   }
 
   printf("Vehicle #%d completed signal\n", vtype.id);
@@ -152,8 +161,6 @@ int main(int argc, char **argv) {
 
   srand(time(NULL));
 
-  pthread_barrier_init(&b, NULL, THREADCOUNT + 1);
-
   pthread_t pts[THREADCOUNT];
   for (int i = 0; i < THREADCOUNT; i++) {
     vehicle_t *vtype = malloc(sizeof(vehicle_t));
@@ -162,16 +169,6 @@ int main(int argc, char **argv) {
     (*vtype).c = rand_c();
     (*vtype).d = rand_d();
     pthread_create(&pts[i], NULL, vehicle_init, (void *)vtype);
-  }
-
-  pthread_barrier_wait(&b);
-
-  for (int i = 0; i < THREADCOUNT; i++) {
-    pthread_mutex_lock(&m);
-    pthread_cond_signal(&w);
-    printf("Signalling #%d\n", i);
-    pthread_mutex_unlock(&m);
-    nid = i;
   }
 
   // check the left side
