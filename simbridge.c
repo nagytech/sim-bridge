@@ -62,9 +62,8 @@ void *vthread_init(void *arg) {
       gettimeofday(&tv, NULL);
       printf("[%03ld.%03ds] #%03.3d << WAIT! %s.\n", tv.tv_sec - bs->start, tv.tv_usec / 1000, v->id, why_not(r));
       pthread_mutex_lock(bs->h);
-      // TODO: Check if the last one finished..
-      pthread_mutex_unlock(bs->h);
       printf("[%03ld.%03ds] #%03.3d << OK\n", tv.tv_sec - bs->start, tv.tv_usec / 1000, v->id);
+      pthread_mutex_unlock(bs->h);
     }
 
     usleep(DELAYTIME);
