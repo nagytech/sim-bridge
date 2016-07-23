@@ -32,20 +32,33 @@ typedef enum vehicle_direction {
   RIGHT   = 1
 } direction_t;
 
-typedef struct vehicle_type {
+struct bs_t;
+
+typedef struct v_t {
   int id;
-  pthread_t pt;
   class_t c;
   direction_t d;
+  struct bs_t *bs;
 } vehicle_t;
 
+typedef struct bs_t {
+  int nid;
+  vehicle_t *lv;
+  void *la;
+  pthread_mutex_t *m;
+  pthread_cond_t *w;
+  long int start;
+} bstate_t;
+
+
 int can_i_go(vehicle_t *c, vehicle_t *m);
-char* char_c(class_t c);
-char* char_d(direction_t d);
-vehicle_t *new_v(int i, pthread_t pt);
+char *char_c(class_t c);
+char *char_d(direction_t d);
+vehicle_t *new_v(int i, struct bs_t *bs, pthread_t pt);
 class_t rand_c();
 direction_t rand_d();
 double rand_f();
 void *vthread_init(void *arg);
+char *why_not(int b);
 
 #endif /* SIMBRIDGE_HEADER */
