@@ -43,16 +43,16 @@ typedef struct v_t {
 } vehicle_t;
 
 typedef struct bs_t {
-  int tc;
-  int nid;
-  vehicle_t *lv;
-  void *la;
-  int bc;
-  pthread_mutex_t *m;
-  pthread_mutex_t *b;
-  pthread_mutex_t *h;
-  pthread_cond_t *w;
-  long int start;
+  int tc;                 // Thread count
+  int nid;                // Next id
+  vehicle_t *lv;          // Last Vehicle
+  void *la;               // Last Arg
+  int bc;                 // Bridge Count
+  pthread_mutex_t *m;     // Condition
+  pthread_mutex_t *b;     // Bridge
+  pthread_mutex_t *h;     // Hold
+  pthread_cond_t *w;      // Order
+  long int start;         // Start time
 } bstate_t;
 
 

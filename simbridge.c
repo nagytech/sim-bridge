@@ -60,9 +60,11 @@ void *vthread_init(void *arg) {
     int r = can_i_go(bs->lv, v);
     if (r < 1) {
       gettimeofday(&tv, NULL);
-      printf("[%03ld.%03ds] #%03.3d << WAIT! %s.\n", tv.tv_sec - bs->start, tv.tv_usec / 1000, v->id, why_not(r));
+      printf("[%03ld.%03ds] #%03.3d << WAIT! %s.\n",
+        tv.tv_sec - bs->start, tv.tv_usec / 1000, v->id, why_not(r));
       pthread_mutex_lock(bs->h);
-      printf("[%03ld.%03ds] #%03.3d << OK\n", tv.tv_sec - bs->start, tv.tv_usec / 1000, v->id);
+      printf("[%03ld.%03ds] #%03.3d << OK\n",
+        tv.tv_sec - bs->start, tv.tv_usec / 1000, v->id);
       pthread_mutex_unlock(bs->h);
     }
 
@@ -81,10 +83,13 @@ void *vthread_init(void *arg) {
     pthread_mutex_unlock(bs->m);
 
     gettimeofday(&tv, NULL);
-    printf("[%03ld.%03ds] #%03.3d >> (%s) going %s\n", tv.tv_sec - bs->start, tv.tv_usec / 1000, v->id, char_c(v->c), char_d(v->d));
+    printf("[%03ld.%03ds] #%03.3d >> (%s) going %s\n",
+      tv.tv_sec - bs->start, tv.tv_usec / 1000, v->id,
+      char_c(v->c), char_d(v->d));
     usleep(CROSSINGTIME);
     gettimeofday(&tv, NULL);
-    printf("[%03ld.%03ds] #%03.3d >> (%s) done\n", tv.tv_sec - bs->start, tv.tv_usec / 1000, v->id, char_c(v->c));
+    printf("[%03ld.%03ds] #%03.3d >> (%s) done\n",
+      tv.tv_sec - bs->start, tv.tv_usec / 1000, v->id, char_c(v->c));
 
     pthread_mutex_lock(bs->b);
     (bs->bc)--;
@@ -94,8 +99,6 @@ void *vthread_init(void *arg) {
 
     break;
   }
-
-  // TODO: output the number of cars, trucks percentace, crossing time, etc.
 
   return(0);
 }
