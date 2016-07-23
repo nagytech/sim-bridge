@@ -22,54 +22,16 @@
  * returns: writes the coordinated bridge activity and the traffic behaviour to
  * stdout
  */
+int main(int argc, char **argv) {
 
-int mutex_init(struct bs_t *bs) {
-  pthread_mutex_t *m = malloc(sizeof(pthread_mutex_t));
-  pthread_cond_t *w = malloc(sizeof(pthread_cond_t));
-  pthread_mutex_init(m, NULL);
-  pthread_cond_init(w, NULL);
-  // TODO: error codes
-  bs->w = w;
-  bs->m = m;
-  return 1;
-}
+  struct bs_t *bs = bs_create(THREADCOUNT);
 
-int sw_init(struct bs_t *bs) {
-  srand(time(NULL));
-  struct timeval tv;
-  gettimeofday(&tv, NULL);
-  bs->start = tv.tv_sec;
-  return 1;
-}
+  pthread_t *pts = pts_create(THREADCOUNT, bs);
+  pts_join(THREADCOUNT, pts);
+  pts_destroy(pts);
 
-struct bs_t *bs_init() {
- struct bs_t *bs = malloc(sizeof(bstate_t));
- bs->nid = 1;
- return bs;
-}
+  bs_destroy(bs);
 
-int *bs_clean() {
-    // TODO: 
-}
-
- int main(int argc, char **argv) {
-
-  struct bs_t *bs = bs_init();
-  mutex_init(bs);
-  sw_init(bs);
-
-  // Create a series of vehicles as threads
-  pthread_t pts[THREADCOUNT];
-  for (int i = 0; i < THREADCOUNT; i++) {
-   vehicle_t *vtype = new_v(i, bs, pts[i]);
-   pthread_create(&pts[i], NULL, vthread_init, (void *)vtype);
-  }
-
-  // Re-join the terminating threads
-  for (int i = 0; i < THREADCOUNT; i++)
-   pthread_join(pts[i], NULL);
-
-  // Exit
   return(0);
 
 }
@@ -77,36 +39,32 @@ int *bs_clean() {
 void ustate(void *arg, struct bs_t *bs) {
   bs->lv = (vehicle_t *)arg;
   bs->la = arg;
-  (bs->nid)++;
+  bs->nid = bs->nid + 1;
 }
 
 void *vthread_init(void *arg) {
 
-  vehicle_t *vtype = (vehicle_t *)arg;
-  struct bs_t *bs = vtype->bs;
-  bs->nid = 1;
+  vehicle_t *v = (vehicle_t *)arg;
+  struct bs_t *bs = v->bs;
 
-  for (int i = 0; i < THREADCOUNT; i++) {
+  for (int i = 0; i < bs->tc; i++) {
 
     pthread_mutex_lock(bs->m);
 
-    // Apply turn order to the thread pool
-    if (bs->nid != vtype->id) {
+    if (bs->nid != v->id) {
       pthread_cond_wait(bs->w, bs->m);
       continue;
     }
 
     struct timeval tv;
-    int r = can_i_go(bs->lv, vtype);
+    int r = can_i_go(bs->lv, v);
     if (r < 1) {
       gettimeofday(&tv, NULL);
-      printf("[%03ld.%03ds] #%03.3d << WAIT! %s.\n", tv.tv_sec - bs->start, tv.tv_usec / 1000, vtype->id, why_not(r));
-      usleep(CROSSINGTIME + DELAYTIME);
-      // TODO: Lock up, lock down
-      // TODO: Need a signaler here rather than waiting
-      // TODO: Maybe do it by counting the number of cars on teh bridge inc, decr
+      printf("[%03ld.%03ds] #%03.3d << WAIT! %s.\n", tv.tv_sec - bs->start, tv.tv_usec / 1000, v->id, why_not(r));
+      pthread_mutex_lock(bs->h);
       // TODO: Check if the last one finished..
-      printf("[%03ld.%03ds] #%03.3d << OK\n", tv.tv_sec - bs->start, tv.tv_usec / 1000, vtype->id);
+      pthread_mutex_unlock(bs->h);
+      printf("[%03ld.%03ds] #%03.3d << OK\n", tv.tv_sec - bs->start, tv.tv_usec / 1000, v->id);
     }
 
     usleep(DELAYTIME);
@@ -114,16 +72,26 @@ void *vthread_init(void *arg) {
     if (bs->nid > 1) free(bs->la);
     ustate(arg, bs);
 
+    pthread_mutex_lock(bs->b);
+    bs->bc = bs->bc + 1;
+    if (bs->bc == 1)
+      pthread_mutex_lock(bs->h);
+    pthread_mutex_unlock(bs->b);
+
     pthread_cond_signal(bs->w);
     pthread_mutex_unlock(bs->m);
 
     gettimeofday(&tv, NULL);
-    printf("[%03ld.%03ds] #%03.3d >> (%s) going %s\n", tv.tv_sec - bs->start, tv.tv_usec / 1000, vtype->id, char_c(vtype->c), char_d(vtype->d));
-
+    printf("[%03ld.%03ds] #%03.3d >> (%s) going %s\n", tv.tv_sec - bs->start, tv.tv_usec / 1000, v->id, char_c(v->c), char_d(v->d));
     usleep(CROSSINGTIME);
-
     gettimeofday(&tv, NULL);
-    printf("[%03ld.%03ds] #%03.3d >> (%s) done\n", tv.tv_sec - bs->start, tv.tv_usec / 1000, vtype->id, char_c(vtype->c));
+    printf("[%03ld.%03ds] #%03.3d >> (%s) done\n", tv.tv_sec - bs->start, tv.tv_usec / 1000, v->id, char_c(v->c));
+
+    pthread_mutex_lock(bs->b);
+    (bs->bc)--;
+    if (bs->bc == 0)
+      pthread_mutex_unlock(bs->h);
+    pthread_mutex_unlock(bs->b);
 
     break;
   }
@@ -175,4 +143,73 @@ vehicle_t *new_v(int i, struct bs_t *bs, pthread_t pt) {
   vtype->c = rand_c();
   vtype->d = rand_d();
   return vtype;
+}
+
+
+int mutex_init(struct bs_t *bs) {
+  pthread_mutex_t *b = malloc(sizeof(pthread_mutex_t));
+  pthread_mutex_t *h = malloc(sizeof(pthread_mutex_t));
+  pthread_mutex_t *m = malloc(sizeof(pthread_mutex_t));
+  pthread_cond_t *w = malloc(sizeof(pthread_cond_t));
+  pthread_mutex_init(b, NULL);
+  pthread_mutex_init(h, NULL);
+  pthread_mutex_init(m, NULL);
+  pthread_cond_init(w, NULL);
+  // TODO: error codes
+  bs->b = b;
+  bs->h = h;
+  bs->w = w;
+  bs->m = m;
+  return 1;
+}
+
+int sw_init(struct bs_t *bs) {
+  srand(time(NULL));
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  bs->start = tv.tv_sec;
+  return 1;
+}
+
+struct bs_t *bs_create(int tc) {
+ struct bs_t *bs = malloc(sizeof(bstate_t));
+ mutex_init(bs);
+ sw_init(bs);
+ bs->nid = 1;
+ bs->bc = 0;
+ bs->tc = tc;
+ return bs;
+}
+
+int mutex_destroy(struct bs_t *bs) {
+  free(bs->b);
+  free(bs->m);
+  free(bs->w);
+  return 1;
+}
+
+int bs_destroy(struct bs_t *bs) {
+  mutex_destroy(bs);
+  free(bs);
+  return 1;
+}
+
+int pts_destroy(pthread_t *pts) {
+  free(pts);
+  return 1;
+}
+
+int pts_join(int tc, pthread_t *pts) {
+  for (int i = 0; i < tc; i++) {
+    pthread_join(pts[i], NULL);
+  }
+  return 1;
+}
+
+pthread_t *pts_create(int tc, bstate_t *bs) {
+  pthread_t *pts = malloc(sizeof(pthread_t) * tc);
+  for (int i = 0; i < tc; i++) {
+   pthread_create(&pts[i], NULL, vthread_init, (void *)new_v(i, bs, pts[i]));
+  }
+  return pts;
 }
