@@ -2,7 +2,7 @@
 #define SIMBRIDGE_HEADER
 
 #ifndef THREADCOUNT
-#define THREADCOUNT 50
+#define THREADCOUNT 15
 #endif
 
 #ifndef CROSSINGTIME

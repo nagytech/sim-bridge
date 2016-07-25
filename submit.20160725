@@ -1,0 +1,76 @@
+Assignment Submission
+       Unit: cosc330
+ Assignment: a2
+       User: jnagy
+     Who is:
+       Date: Mon Jul 25 23:11:25 AEST 2016
+----------------------------------------------------------------
+Files submitted:
+-rw------- 1 jnagy jnagy  260 Jul 25 22:49 makefile
+-rw------- 1 jnagy jnagy 5.1K Jul 25 23:05 simbridge.c
+-rw------- 1 jnagy jnagy 1.6K Jul 25 23:10 simbridge.h
+----------------------------------------------------------------
+Script of session:
+Script started on Mon 25 Jul 2016 23:10:56 AEST
+[0;30;42mUNE[m [0;37mjnagy[m:[1;32ma2[m $ make clean
+rm -f *~ *.o simbridge
+[0;30;42mUNE[m [0;37mjnagy[m:[1;32ma2[m $ ls
+makefile  simbridge.c  simbridge.h
+[0;30;42mUNE[m [0;37mjnagy[m:[1;32ma2[m $ make
+gcc  -Wall -pedantic -pthread -o simbridge simbridge.c 
+[0;30;42mUNE[m [0;37mjnagy[m:[1;32ma2[m $ ./simbridge 
+[000.944s] #001 >> (TRUCK) going LEFT
+[000.944s] #002 << WAIT! TRUCK ON THE BRIDGE.
+[001.045s] #001 >> (TRUCK) done
+[000.944s] #002 << OK
+[001.055s] #002 >> (TRUCK) going LEFT
+[001.055s] #003 << WAIT! TRUCK ON THE BRIDGE.
+[001.155s] #002 >> (TRUCK) done
+[001.055s] #003 << OK
+[001.165s] #003 >> ( CAR ) going RIGHT
+[001.165s] #004 << WAIT! ONCOMING TRAFFIC MUST FINISH.
+[001.265s] #003 >> ( CAR ) done
+[001.165s] #004 << OK
+[001.275s] #004 >> ( CAR ) going LEFT
+[001.275s] #005 << WAIT! ONCOMING TRAFFIC MUST FINISH.
+[001.375s] #004 >> ( CAR ) done
+[001.275s] #005 << OK
+[001.385s] #005 >> ( CAR ) going RIGHT
+[001.385s] #006 << WAIT! ONCOMING TRAFFIC MUST FINISH.
+[001.486s] #005 >> ( CAR ) done
+[001.385s] #006 << OK
+[001.496s] #006 >> ( CAR ) going LEFT
+[001.506s] #007 >> ( CAR ) going LEFT
+[001.506s] #008 << WAIT! ONCOMING TRAFFIC MUST FINISH.
+[001.596s] #006 >> ( CAR ) done
+[001.606s] #007 >> ( CAR ) done
+[001.506s] #008 << OK
+[001.616s] #008 >> ( CAR ) going RIGHT
+[001.626s] #009 >> ( CAR ) going RIGHT
+[001.626s] #010 << WAIT! IM A TRUCK.
+[001.716s] #008 >> ( CAR ) done
+[001.726s] #009 >> ( CAR ) done
+[001.626s] #010 << OK
+[001.736s] #010 >> (TRUCK) going RIGHT
+[001.737s] #011 << WAIT! TRUCK ON THE BRIDGE.
+[001.837s] #010 >> (TRUCK) done
+[001.737s] #011 << OK
+[001.847s] #011 >> ( CAR ) going LEFT
+[001.847s] #012 << WAIT! ONCOMING TRAFFIC MUST FINISH.
+[001.947s] #011 >> ( CAR ) done
+[001.847s] #012 << OK
+[001.957s] #012 >> ( CAR ) going RIGHT
+[001.957s] #013 << WAIT! ONCOMING TRAFFIC MUST FINISH.
+[002.057s] #012 >> ( CAR ) done
+[001.957s] #013 << OK
+[002.067s] #013 >> ( CAR ) going LEFT
+[002.077s] #014 >> ( CAR ) going LEFT
+[002.087s] #015 >> ( CAR ) going LEFT
+[002.167s] #013 >> ( CAR ) done
+[002.177s] #014 >> ( CAR ) done
+[002.188s] #015 >> ( CAR ) done
+[0;30;42mUNE[m [0;37mjnagy[m:[1;32ma2[m $ exit
+exit
+
+Script done on Mon 25 Jul 2016 23:11:09 AEST
+2703
