@@ -55,15 +55,18 @@ void *vthread_init(void *arg) {
     int r = can_i_go((vehicle_t *)bs->la, v);
     if (r < 1) {
       gettimeofday(&tv, NULL);
-      printf("[%03ld.%03ds] #%03.3d << WAIT! %s.\n",
+      printf("[%03ld.%03lds] #%3.3d << WAIT! %s.\n",
         tv.tv_sec - bs->start, tv.tv_usec / 1000, v->id, why_not(r));
       pthread_mutex_lock(bs->h);
-      printf("[%03ld.%03ds] #%03.3d << OK\n",
+      printf("[%03ld.%03lds] #%3.3d << OK\n",
         tv.tv_sec - bs->start, tv.tv_usec / 1000, v->id);
       pthread_mutex_unlock(bs->h);
     }
 
-    if (bs->nid > 1) free(bs->la);
+    usleep(DELAYTIME);
+ 
+    void *las = bs->la;
+
     ustate(arg, bs);
 
     pthread_mutex_lock(bs->b);
@@ -76,12 +79,12 @@ void *vthread_init(void *arg) {
     pthread_mutex_unlock(bs->m);
 
     gettimeofday(&tv, NULL);
-    printf("[%03ld.%03ds] #%03.3d >> (%s) going %s\n",
+    printf("[%03ld.%03lds] #%3.3d >> (%s) going %s\n",
       tv.tv_sec - bs->start, tv.tv_usec / 1000, v->id,
       char_c(v->c), char_d(v->d));
     usleep(CROSSINGTIME);
     gettimeofday(&tv, NULL);
-    printf("[%03ld.%03ds] #%03.3d >> (%s) done\n",
+    printf("[%03ld.%03lds] #%3.3d >> (%s) done\n",
       tv.tv_sec - bs->start, tv.tv_usec / 1000, v->id, char_c(v->c));
 
     pthread_mutex_lock(bs->b);
@@ -89,6 +92,9 @@ void *vthread_init(void *arg) {
     if (bs->bc == 0)
       pthread_mutex_unlock(bs->h);
     pthread_mutex_unlock(bs->b);
+
+    if (bs->nid > 1)
+      free(las);
 
     break;
   }

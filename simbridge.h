@@ -2,11 +2,15 @@
 #define SIMBRIDGE_HEADER
 
 #ifndef THREADCOUNT
-#define THREADCOUNT 100
+#define THREADCOUNT 50
 #endif
 
 #ifndef CROSSINGTIME
 #define CROSSINGTIME 100 / 0.001
+#endif
+
+#ifndef DELAYTIME
+#define DELAYTIME 10 / 0.001
 #endif
 
 #ifndef TRUCKPERCENTAGE
