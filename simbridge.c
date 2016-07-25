@@ -36,12 +36,7 @@ int main(int argc, char **argv) {
 
 }
 
-void ustate(void *arg, struct bs_t *bs) {
-  bs->lv = (vehicle_t *)arg;
-  bs->la = arg;
-  bs->nid = bs->nid + 1;
-}
-
+// Thread Initializer
 void *vthread_init(void *arg) {
 
   vehicle_t *v = (vehicle_t *)arg;
@@ -57,7 +52,7 @@ void *vthread_init(void *arg) {
     }
 
     struct timeval tv;
-    int r = can_i_go(bs->lv, v);
+    int r = can_i_go((vehicle_t *)bs->la, v);
     if (r < 1) {
       gettimeofday(&tv, NULL);
       printf("[%03ld.%03ds] #%03.3d << WAIT! %s.\n",
@@ -67,8 +62,6 @@ void *vthread_init(void *arg) {
         tv.tv_sec - bs->start, tv.tv_usec / 1000, v->id);
       pthread_mutex_unlock(bs->h);
     }
-
-    usleep(DELAYTIME);
 
     if (bs->nid > 1) free(bs->la);
     ustate(arg, bs);
@@ -103,6 +96,25 @@ void *vthread_init(void *arg) {
   return(0);
 }
 
+// Create bridge state
+struct bs_t *bs_create(int tc) {
+ struct bs_t *bs = malloc(sizeof(bstate_t));
+ mutex_init(bs);
+ sw_init(bs);
+ bs->nid = 1;
+ bs->bc = 0;
+ bs->tc = tc;
+ return bs;
+}
+
+// Destroy bridge state
+int bs_destroy(struct bs_t *bs) {
+  mutex_destroy(bs);
+  free(bs);
+  return 1;
+}
+
+// Compare last and current vehicle to see if current can cross
 int can_i_go(vehicle_t *c, vehicle_t *m) {
   if (m->id == 1) return 1;
   if (c->c == TRUCK) return -1;
@@ -111,43 +123,25 @@ int can_i_go(vehicle_t *c, vehicle_t *m) {
   return 0;
 }
 
-char *why_not(int b) {
-  if (b == 0) return "ONCOMING TRAFFIC MUST FINISH";
-  if (b == -1) return "TRUCK ON THE BRIDGE";
-  if (b == -2) return "IM A TRUCK";
-  return "UNKNOWN";
-}
-
+// Text value of class type
 char *char_c(class_t c) {
   return c == CAR ? " CAR " : "TRUCK";
 }
 
+// Text value of direction type
 char* char_d(direction_t d) {
   return d == LEFT ? "LEFT": "RIGHT";
 }
 
-class_t rand_c() {
-  return rand_f() <= TRUCKPERCENTAGE ? TRUCK : CAR;
+// Destroy mutexes
+int mutex_destroy(struct bs_t *bs) {
+  free(bs->b);
+  free(bs->m);
+  free(bs->w);
+  return 1;
 }
 
-direction_t rand_d() {
-  return rand_f() <= LEFTPERCENTAGE ? LEFT : RIGHT;
-}
-
-double rand_f() {
-  return (double)rand() / (double)RAND_MAX;
-}
-
-vehicle_t *new_v(int i, struct bs_t *bs, pthread_t pt) {
-  vehicle_t *vtype = malloc(sizeof(vehicle_t));
-  vtype->id = i + 1;
-  vtype->bs = bs;
-  vtype->c = rand_c();
-  vtype->d = rand_d();
-  return vtype;
-}
-
-
+// Initialize mutexes
 int mutex_init(struct bs_t *bs) {
   pthread_mutex_t *b = malloc(sizeof(pthread_mutex_t));
   pthread_mutex_t *h = malloc(sizeof(pthread_mutex_t));
@@ -165,6 +159,55 @@ int mutex_init(struct bs_t *bs) {
   return 1;
 }
 
+// Create a new vehicle_t object
+vehicle_t *new_v(int i, struct bs_t *bs, pthread_t pt) {
+  vehicle_t *vtype = malloc(sizeof(vehicle_t));
+  vtype->id = i + 1;
+  vtype->bs = bs;
+  vtype->c = rand_c();
+  vtype->d = rand_d();
+  return vtype;
+}
+
+// Create new pool of threads
+pthread_t *pts_create(int tc, bstate_t *bs) {
+  pthread_t *pts = malloc(sizeof(pthread_t) * tc);
+  for (int i = 0; i < tc; i++) {
+   pthread_create(&pts[i], NULL, vthread_init, (void *)new_v(i, bs, pts[i]));
+  }
+  return pts;
+}
+
+// Cleanup a thread
+int pts_destroy(pthread_t *pts) {
+  free(pts);
+  return 1;
+}
+
+// Join all threads to the main
+int pts_join(int tc, pthread_t *pts) {
+  for (int i = 0; i < tc; i++) {
+    pthread_join(pts[i], NULL);
+  }
+  return 1;
+}
+
+// Random class of vehicle
+class_t rand_c() {
+  return rand_f() <= TRUCKPERCENTAGE ? TRUCK : CAR;
+}
+
+// Random direction
+direction_t rand_d() {
+  return rand_f() <= LEFTPERCENTAGE ? LEFT : RIGHT;
+}
+
+// Random float
+double rand_f() {
+  return (double)rand() / (double)RAND_MAX;
+}
+
+// Initialize the stopwatch
 int sw_init(struct bs_t *bs) {
   srand(time(NULL));
   struct timeval tv;
@@ -173,45 +216,16 @@ int sw_init(struct bs_t *bs) {
   return 1;
 }
 
-struct bs_t *bs_create(int tc) {
- struct bs_t *bs = malloc(sizeof(bstate_t));
- mutex_init(bs);
- sw_init(bs);
- bs->nid = 1;
- bs->bc = 0;
- bs->tc = tc;
- return bs;
+// Update the bridge state
+void ustate(void *arg, struct bs_t *bs) {
+  bs->la = arg;
+  bs->nid = bs->nid + 1;
 }
 
-int mutex_destroy(struct bs_t *bs) {
-  free(bs->b);
-  free(bs->m);
-  free(bs->w);
-  return 1;
-}
-
-int bs_destroy(struct bs_t *bs) {
-  mutex_destroy(bs);
-  free(bs);
-  return 1;
-}
-
-int pts_destroy(pthread_t *pts) {
-  free(pts);
-  return 1;
-}
-
-int pts_join(int tc, pthread_t *pts) {
-  for (int i = 0; i < tc; i++) {
-    pthread_join(pts[i], NULL);
-  }
-  return 1;
-}
-
-pthread_t *pts_create(int tc, bstate_t *bs) {
-  pthread_t *pts = malloc(sizeof(pthread_t) * tc);
-  for (int i = 0; i < tc; i++) {
-   pthread_create(&pts[i], NULL, vthread_init, (void *)new_v(i, bs, pts[i]));
-  }
-  return pts;
+// Convert can_i_go result status to text
+char *why_not(int b) {
+  if (b == 0) return "ONCOMING TRAFFIC MUST FINISH";
+  if (b == -1) return "TRUCK ON THE BRIDGE";
+  if (b == -2) return "IM A TRUCK";
+  return "UNKNOWN";
 }

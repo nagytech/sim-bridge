@@ -1,17 +1,12 @@
 #ifndef SIMBRIDGE_HEADER
 #define SIMBRIDGE_HEADER
 
-
 #ifndef THREADCOUNT
 #define THREADCOUNT 100
 #endif
 
 #ifndef CROSSINGTIME
 #define CROSSINGTIME 100 / 0.001
-#endif
-
-#ifndef DELAYTIME
-#define DELAYTIME 10 / 0.001
 #endif
 
 #ifndef TRUCKPERCENTAGE
@@ -45,7 +40,6 @@ typedef struct v_t {
 typedef struct bs_t {
   int tc;                 // Thread count
   int nid;                // Next id
-  vehicle_t *lv;          // Last Vehicle
   void *la;               // Last Arg
   int bc;                 // Bridge Count
   pthread_mutex_t *m;     // Condition
