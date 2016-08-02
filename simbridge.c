@@ -58,6 +58,7 @@ void *vthread_init(void *arg) {
       printf("[%03ld.%03lds] #%3.3d << WAIT! %s.\n",
         tv.tv_sec - bs->start, tv.tv_usec / 1000, v->id, why_not(r));
       pthread_mutex_lock(bs->h);
+      gettimeofday(&tv, NULL);
       printf("[%03ld.%03lds] #%3.3d << OK\n",
         tv.tv_sec - bs->start, tv.tv_usec / 1000, v->id);
       pthread_mutex_unlock(bs->h);
