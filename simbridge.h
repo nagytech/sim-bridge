@@ -6,11 +6,11 @@
 #endif
 
 #ifndef CROSSINGTIME
-#define CROSSINGTIME 100 / 0.001
+#define CROSSINGTIME 500 / 0.001
 #endif
 
 #ifndef DELAYTIME
-#define DELAYTIME 10 / 0.001
+#define DELAYTIME 100 / 0.001
 #endif
 
 #ifndef TRUCKPERCENTAGE
